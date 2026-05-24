@@ -28,6 +28,7 @@ PALETTE_MAIN   = "#1C1C1E"
 PALETTE_ACCENT = "#8A5C3A"
 PALETTE_MUTED  = "#8A8070"
 PALETTE_CATS   = [
+    # Colores corregidos eliminando espacios artificiales
     "#1C1C1E",
     "#8A5C3A",
     "#5C7A5A",
@@ -81,7 +82,6 @@ def cargar_datos(path):
 # CLASIFICACIÓN VEHICULAR
 # ─────────────────────────────────────────────
 def clasificar_categoria(codigo):
-
     if pd.isna(codigo):
         return "Desconocida"
 
@@ -89,25 +89,18 @@ def clasificar_categoria(codigo):
 
     if codigo.startswith("VII"):
         return "Cat. VII — Camiones ≥ 6 ejes"
-
     elif codigo.startswith("VI"):
         return "Cat. VI — Camiones 5 ejes"
-
     elif codigo.startswith("V") and not codigo.startswith("VI"):
         return "Cat. V — Camiones 3–4 ejes"
-
     elif codigo.startswith("IV"):
         return "Cat. IV — Camiones 2 ejes grandes"
-
     elif codigo.startswith("III"):
         return "Cat. III — Camiones 2 ejes pequeños"
-
     elif codigo.startswith("II"):
         return "Cat. II — Buses"
-
     elif codigo.startswith("I"):
         return "Cat. I — Livianos"
-
     else:
         return "Especial / No clasificado"
 
@@ -139,7 +132,6 @@ CATEGORIAS_PESADAS = [
 # COMPOSICIÓN VEHICULAR
 # ─────────────────────────────────────────────
 def calcular_composicion(df):
-
     df_comp = (
         df.groupby("IdCategoriaTarifa")["Trafico"]
         .sum()
@@ -159,8 +151,11 @@ def calcular_composicion(df):
 
     df_final["Porcentaje"] = (
         df_final["Trafico"]
-        / df_final["Trafico"].sum()
-    ) * 100
+        .hbar / df_final["Trafico"].sum()
+    ) * 100 if df_final["Trafico"].sum() > 0 else 0
+
+    # Recalcular correctamente el porcentaje de la suma total
+    df_final["Porcentaje"] = (df_final["Trafico"] / df_final["Trafico"].sum()) * 100
 
     K1 = (
         df_final[
@@ -176,9 +171,7 @@ def calcular_composicion(df):
 # FACTOR DE DAÑO
 # ─────────────────────────────────────────────
 def calcular_FC(df_porcentajes):
-
     df = df_porcentajes.copy()
-
     df["f"] = df["Tipologia"].map(FACTORES_DAÑO)
 
     # Excluir livianos
@@ -189,7 +182,7 @@ def calcular_FC(df_porcentajes):
     FC = (
         df["FC_i"].sum()
         / df["Porcentaje"].sum()
-    )
+    ) if df["Porcentaje"].sum() > 0 else 0
 
     return FC, df
 
@@ -198,7 +191,6 @@ def calcular_FC(df_porcentajes):
 # CÁLCULO DEL TPD
 # ─────────────────────────────────────────────
 def calcular_TPD(df):
-
     df = df.copy()
 
     # Tráfico total real
@@ -257,55 +249,49 @@ def calcular_TPD(df):
         aggfunc="mean"
     )
 
-    # PROMEDIO NATURAL
-    # SIN rellenar NaNs
+    # PROMEDIO NATURAL SIN rellenar NaNs
     TPD = matriz.mean(axis=1).reset_index()
-
     TPD.columns = ["Año", "TPD"]
 
     return TPD, matriz
 
 
 # ─────────────────────────────────────────────
-# REGRESIÓN
+# REGRESIÓN MODIFICADA (Calcula Precisión y Tasa)
 # ─────────────────────────────────────────────
 def regresion_TPD(TPD, año_objetivo):
-
     x = TPD["Año"].values.reshape(-1, 1)
     y = TPD["TPD"].values
 
     modelo = LinearRegression()
-
     modelo.fit(x, y)
 
-    TPD_pred = modelo.predict(
-        np.array([[año_objetivo]])
-    )[0]
-
+    TPD_pred = modelo.predict(np.array([[año_objetivo]]))[0]
     r2 = modelo.score(x, y)
 
-    return modelo, TPD_pred, r2
+    # --- CÁLCULO DE LA TASA DE CRECIMIENTO ANUAL COMPUESTA (CAGR) ---
+    año_inicial = TPD["Año"].min()
+    TPD_inicial = modelo.predict(np.array([[año_inicial]]))[0]
+    periodo = año_objetivo - año_inicial
+    
+    if periodo > 0 and TPD_inicial > 0:
+        r_estimada = (TPD_pred / TPD_inicial) ** (1 / periodo) - 1
+    else:
+        r_estimada = 0.0
+
+    return modelo, TPD_pred, r2, r_estimada
 
 
 # ─────────────────────────────────────────────
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
-
     st.title("Análisis de Tránsito")
 
     try:
-
-        df_raw = cargar_datos(
-            "Trafico_Atlantico_2026.xlsx"
-        )
-
+        df_raw = cargar_datos("Trafico_Atlantico_2026.xlsx")
     except FileNotFoundError:
-
-        st.error(
-            "No se encontró el archivo Excel."
-        )
-
+        st.error("No se encontró el archivo Excel.")
         st.stop()
 
     municipios = sorted(
@@ -315,16 +301,10 @@ with st.sidebar:
         .tolist()
     )
 
-    municipio_sel = st.selectbox(
-        "Municipio",
-        municipios
-    )
+    municipio_sel = st.selectbox("Municipio", municipios)
 
     años_disponibles = sorted(
-        pd.to_datetime(
-            df_raw["FechaDesde"],
-            errors="coerce"
-        )
+        pd.to_datetime(df_raw["FechaDesde"], errors="coerce")
         .dt.year
         .dropna()
         .unique()
@@ -352,14 +332,21 @@ with st.sidebar:
         value=50.0
     )
 
-    r_input = st.number_input(
-        "r",
-        min_value=0.001,
-        max_value=0.20,
-        value=0.035,
-        step=0.001,
-        format="%.3f"
-    )
+    # Lógica interactiva para la tasa de crecimiento r
+    usar_r_regresion = st.checkbox("Usar 'r' estimada por la regresión", value=True)
+    
+    if not usar_r_regresion:
+        r_input = st.number_input(
+            "r (Manual)",
+            min_value=0.001,
+            max_value=0.20,
+            value=0.035,
+            step=0.001,
+            format="%.3f"
+        )
+    else:
+        st.caption("ℹ️ *La tasa 'r' se calculará automáticamente con la tendencia del modelo.*")
+        r_input = 0.035 # Valor por defecto temporal
 
     n_input = st.number_input(
         "n (años)",
@@ -372,91 +359,41 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 # PREPROCESAMIENTO
 # ─────────────────────────────────────────────
-df_mun = (
-    df_raw[
-        df_raw["Municipio"] == municipio_sel
-    ]
-    .copy()
-)
+df_mun = df_raw[df_raw["Municipio"] == municipio_sel].copy()
+df_mun["FechaDesde"] = pd.to_datetime(df_mun["FechaDesde"], errors="coerce")
+df_mun["Año_filtro"] = df_mun["FechaDesde"].dt.year
 
-# Fechas
-df_mun["FechaDesde"] = pd.to_datetime(
-    df_mun["FechaDesde"],
-    errors="coerce"
-)
-
-# Eliminar años primero
-df_mun["Año_filtro"] = (
-    df_mun["FechaDesde"].dt.year
-)
-
-df_filtrado = df_mun[
-    ~df_mun["Año_filtro"].isin(años_excluir)
-].copy()
+df_filtrado = df_mun[~df_mun["Año_filtro"].isin(años_excluir)].copy()
 
 # Outliers
-percentil_99 = (
-    df_filtrado["TPDM"]
-    .quantile(0.99)
-)
-
-percentil_01 = (
-    df_filtrado["TPDM"]
-    .quantile(0.01)
-)
+percentil_99 = df_filtrado["TPDM"].quantile(0.99)
+percentil_01 = df_filtrado["TPDM"].quantile(0.01)
 
 df_filtrado = df_filtrado[
-    (
-        df_filtrado["TPDM"]
-        >= percentil_01
-    )
-    &
-    (
-        df_filtrado["TPDM"]
-        <= percentil_99
-    )
+    (df_filtrado["TPDM"] >= percentil_01) & 
+    (df_filtrado["TPDM"] <= percentil_99)
 ].copy()
 
-# Eliminar columna auxiliar
-df_filtrado = df_filtrado.drop(
-    columns=["Año_filtro"]
-)
-
-# % ceros
-pct_ceros = (
-    (df_filtrado["TPDM"] == 0).sum()
-    / len(df_filtrado)
-    * 100
-    if len(df_filtrado) > 0
-    else 0
-)
+df_filtrado = df_filtrado.drop(columns=["Año_filtro"])
 
 
 # ─────────────────────────────────────────────
 # CÁLCULOS PRINCIPALES
 # ─────────────────────────────────────────────
-df_composicion, K1 = calcular_composicion(
-    df_filtrado
-)
+df_composicion, K1 = calcular_composicion(df_filtrado)
+FC, df_fc_detalle = calcular_FC(df_composicion)
+TPD, matriz_tpd = calcular_TPD(df_filtrado)
 
-FC, df_fc_detalle = calcular_FC(
-    df_composicion
-)
-
-TPD, matriz_tpd = calcular_TPD(
-    df_filtrado
-)
-
-modelo, TPD_pred, r2 = regresion_TPD(
-    TPD,
-    año_pred
-)
-
+# Se extrae el R2 (precisión) y la r calculada (r_estimada)
+modelo, TPD_pred, r2, r_estimada = regresion_TPD(TPD, año_pred)
 TPD_diseño = TPD_pred
 
+# Asignación de r según la elección del usuario
+r_final = r_estimada if usar_r_regresion else r_input
+
 factor_acumulacion = (
-    ((1 + r_input) ** n_input - 1)
-    / np.log(1 + r_input)
+    ((1 + r_final) ** n_input - 1)
+    / np.log(1 + r_final)
 )
 
 N = (
@@ -473,40 +410,20 @@ N = (
 # TÍTULO
 # ─────────────────────────────────────────────
 st.title("Dashboard de Análisis de Tránsito")
-
-st.write(
-    f"Municipio analizado: **{municipio_sel}**"
-)
-
-st.write(
-    f"Registros utilizados: **{len(df_filtrado):,}**"
-)
+st.write(f"Municipio analizado: **{municipio_sel}** | Registros utilizados: **{len(df_filtrado):,}**")
 
 
 # ─────────────────────────────────────────────
-# MÉTRICAS
+# NUEVAS MÉTRICAS (6 Columnas)
 # ─────────────────────────────────────────────
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-col1.metric(
-    "K1 (%)",
-    f"{K1:.2f}"
-)
-
-col2.metric(
-    "FC",
-    f"{FC:.4f}"
-)
-
-col3.metric(
-    "TPD Diseño",
-    f"{TPD_diseño:,.0f}"
-)
-
-col4.metric(
-    "N",
-    f"{N:,.0f}"
-)
+col1.metric("K1 (%)", f"{K1:.2f}")
+col2.metric("FC", f"{FC:.4f}")
+col3.metric("TPD Diseño", f"{TPD_diseño:,.0f}")
+col4.metric("Precisión ($R^2$)", f"{r2:.4f}")
+col5.metric("Tasa Crecimiento ($r$)", f"{r_final * 100:.2f}%")
+col6.metric("Ejes Equiv. (N)", f"{N:,.0f}")
 
 
 # ─────────────────────────────────────────────
@@ -520,46 +437,28 @@ tab1, tab2, tab3 = st.tabs([
 
 
 # ─────────────────────────────────────────────
-# TAB 1
+# TAB 1 — TPD HISTÓRICO Y REGRESIÓN
 # ─────────────────────────────────────────────
 with tab1:
+    st.subheader("TPD Histórico y Ajuste del Modelo")
 
-    st.subheader("TPD Histórico")
+    # Mostrar detalles de precisión en el cuerpo del Tab
+    c_reg1, c_reg2 = st.columns(2)
+    with c_reg1:
+        st.markdown(f"**Coeficiente de Determinación ($R^2$ - Precisión):** `{r2:.4f}`")
+    with c_reg2:
+        st.markdown(f"**Tasa de Crecimiento Anual de la Tendencia ($r$):** `{r_estimada * 100:.2f}%` o (`{r_estimada:.4f}` decimal)")
 
     st.dataframe(TPD)
 
     fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(TPD["Año"], TPD["TPD"], marker="o", color=PALETTE_MAIN)
 
-    ax.plot(
-        TPD["Año"],
-        TPD["TPD"],
-        marker="o",
-        color=PALETTE_MAIN
-    )
+    X_plot = np.linspace(TPD["Año"].min(), año_pred, 100)
+    y_plot = modelo.predict(X_plot.reshape(-1, 1))
 
-    X_plot = np.linspace(
-        TPD["Año"].min(),
-        año_pred,
-        100
-    )
-
-    y_plot = modelo.predict(
-        X_plot.reshape(-1, 1)
-    )
-
-    ax.plot(
-        X_plot,
-        y_plot,
-        "--",
-        color=PALETTE_ACCENT
-    )
-
-    ax.scatter(
-        año_pred,
-        TPD_pred,
-        color=PALETTE_ACCENT,
-        s=80
-    )
+    ax.plot(X_plot, y_plot, "--", color=PALETTE_ACCENT)
+    ax.scatter(año_pred, TPD_pred, color=PALETTE_ACCENT, s=80)
 
     apply_academic_style(
         ax,
@@ -567,7 +466,6 @@ with tab1:
         xlabel="Año",
         ylabel="Vehículos/día"
     )
-
     st.pyplot(fig)
 
 
@@ -575,13 +473,10 @@ with tab1:
 # TAB 2
 # ─────────────────────────────────────────────
 with tab2:
-
     st.subheader("Composición Vehicular")
-
     st.dataframe(df_composicion)
 
     fig, ax = plt.subplots(figsize=(7, 4))
-
     sns.barplot(
         data=df_composicion,
         x="Porcentaje",
@@ -596,11 +491,9 @@ with tab2:
         xlabel="Porcentaje (%)",
         ylabel=""
     )
-
     st.pyplot(fig)
 
     st.subheader("Factor de daño")
-
     st.dataframe(df_fc_detalle)
 
 
@@ -608,35 +501,19 @@ with tab2:
 # TAB 3
 # ─────────────────────────────────────────────
 with tab3:
-
     st.subheader("Ejes Equivalentes")
-
     st.latex(
         r"""
-        N =
-        TPD
-        \cdot
-        \frac{K_1}{100}
-        \cdot
-        \frac{K_2}{100}
-        \cdot
-        365
-        \cdot
-        \left(
-        \frac{(1+r)^n -1}
-        {\ln(1+r)}
-        \right)
-        \cdot FC
+        N = TPD \cdot \frac{K_1}{100} \cdot \frac{K_2}{100} \cdot 365 \cdot \left( \frac{(1+r)^n -1}{\ln(1+r)} \right) \cdot FC
         """
     )
 
     st.write(f"### N = {N:,.2f}")
-
     st.write("---")
 
-    st.write(f"TPD diseño: {TPD_diseño:,.2f}")
-    st.write(f"K1: {K1:.2f}%")
-    st.write(f"K2: {K2_input:.2f}%")
-    st.write(f"FC: {FC:.4f}")
-    st.write(f"r: {r_input:.3f}")
-    st.write(f"n: {n_input}")
+    st.write(f"**TPD diseño:** {TPD_diseño:,.2f}")
+    st.write(f"**K1 (Vehículos Pesados):** {K1:.2f}%")
+    st.write(f"**K2 (Distribución Direccional):** {K2_input:.2f}%")
+    st.write(f"**FC (Factor de Daño Global):** {FC:.4f}")
+    st.write(f"**r (Tasa Utilizada):** {r_final:.4f} ({r_final * 100:.2f}%)")
+    st.write(f"**n (Periodo de diseño):** {n_input} años")
