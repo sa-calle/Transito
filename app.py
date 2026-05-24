@@ -28,7 +28,6 @@ PALETTE_MAIN   = "#1C1C1E"
 PALETTE_ACCENT = "#8A5C3A"
 PALETTE_MUTED  = "#8A8070"
 PALETTE_CATS   = [
-    # Colores corregidos eliminando espacios artificiales
     "#1C1C1E",
     "#8A5C3A",
     "#5C7A5A",
@@ -129,7 +128,7 @@ CATEGORIAS_PESADAS = [
 
 
 # ─────────────────────────────────────────────
-# COMPOSICIÓN VEHICULAR
+# COMPOSICIÓN VEHICULAR (CORREGIDA)
 # ─────────────────────────────────────────────
 def calcular_composicion(df):
     df_comp = (
@@ -149,13 +148,9 @@ def calcular_composicion(df):
         .reset_index()
     )
 
-    df_final["Porcentaje"] = (
-        df_final["Trafico"]
-        .hbar / df_final["Trafico"].sum()
-    ) * 100 if df_final["Trafico"].sum() > 0 else 0
-
-    # Recalcular correctamente el porcentaje de la suma total
-    df_final["Porcentaje"] = (df_final["Trafico"] / df_final["Trafico"].sum()) * 100
+    # Cálculo corregido sin el atributo erróneo .hbar
+    suma_total = df_final["Trafico"].sum()
+    df_final["Porcentaje"] = (df_final["Trafico"] / suma_total) * 100 if suma_total > 0 else 0
 
     K1 = (
         df_final[
@@ -257,7 +252,7 @@ def calcular_TPD(df):
 
 
 # ─────────────────────────────────────────────
-# REGRESIÓN MODIFICADA (Calcula Precisión y Tasa)
+# REGRESIÓN
 # ─────────────────────────────────────────────
 def regresion_TPD(TPD, año_objetivo):
     x = TPD["Año"].values.reshape(-1, 1)
@@ -332,7 +327,6 @@ with st.sidebar:
         value=50.0
     )
 
-    # Lógica interactiva para la tasa de crecimiento r
     usar_r_regresion = st.checkbox("Usar 'r' estimada por la regresión", value=True)
     
     if not usar_r_regresion:
@@ -346,7 +340,7 @@ with st.sidebar:
         )
     else:
         st.caption("ℹ️ *La tasa 'r' se calculará automáticamente con la tendencia del modelo.*")
-        r_input = 0.035 # Valor por defecto temporal
+        r_input = 0.035
 
     n_input = st.number_input(
         "n (años)",
@@ -384,11 +378,9 @@ df_composicion, K1 = calcular_composicion(df_filtrado)
 FC, df_fc_detalle = calcular_FC(df_composicion)
 TPD, matriz_tpd = calcular_TPD(df_filtrado)
 
-# Se extrae el R2 (precisión) y la r calculada (r_estimada)
 modelo, TPD_pred, r2, r_estimada = regresion_TPD(TPD, año_pred)
 TPD_diseño = TPD_pred
 
-# Asignación de r según la elección del usuario
 r_final = r_estimada if usar_r_regresion else r_input
 
 factor_acumulacion = (
@@ -407,15 +399,11 @@ N = (
 
 
 # ─────────────────────────────────────────────
-# TÍTULO
+# TÍTULO Y MÉTRICAS
 # ─────────────────────────────────────────────
 st.title("Dashboard de Análisis de Tránsito")
 st.write(f"Municipio analizado: **{municipio_sel}** | Registros utilizados: **{len(df_filtrado):,}**")
 
-
-# ─────────────────────────────────────────────
-# NUEVAS MÉTRICAS (6 Columnas)
-# ─────────────────────────────────────────────
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 col1.metric("K1 (%)", f"{K1:.2f}")
@@ -437,12 +425,11 @@ tab1, tab2, tab3 = st.tabs([
 
 
 # ─────────────────────────────────────────────
-# TAB 1 — TPD HISTÓRICO Y REGRESIÓN
+# TAB 1
 # ─────────────────────────────────────────────
 with tab1:
     st.subheader("TPD Histórico y Ajuste del Modelo")
 
-    # Mostrar detalles de precisión en el cuerpo del Tab
     c_reg1, c_reg2 = st.columns(2)
     with c_reg1:
         st.markdown(f"**Coeficiente de Determinación ($R^2$ - Precisión):** `{r2:.4f}`")
