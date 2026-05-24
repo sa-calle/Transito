@@ -477,7 +477,7 @@ with st.sidebar:
 
     st.markdown('<div class="sidebar-section">Filtro de datos</div>', unsafe_allow_html=True)
     municipios = sorted(df_raw["Municipio"].dropna().unique().tolist())
-    municipio_sel = st.selectbox("Municipio", municipios,value="Puerto Colombia")
+    municipio_sel = st.selectbox("Municipio", municipios,value=municipios[3])
 
     años_disponibles = sorted(
         pd.to_datetime(df_raw["FechaDesde"], errors="coerce")
