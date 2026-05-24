@@ -11,6 +11,7 @@ import matplotlib.ticker as mticker
 import seaborn as sns
 from sklearn.linear_model import LinearRegression
 
+
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN DE PÁGINA
 # ─────────────────────────────────────────────
@@ -21,51 +22,284 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
 # ─────────────────────────────────────────────
-# ESTILOS
+# ESTILOS GLOBALES
+# ─────────────────────────────────────────────
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,600;1,300&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* Fondo y superficie */
+.stApp { background-color: #F7F6F2; }
+section[data-testid="stSidebar"] { background-color: #1C1C1E; }
+section[data-testid="stSidebar"] * { color: #E8E4DC !important; }
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stMultiSelect label,
+section[data-testid="stSidebar"] .stNumberInput label,
+section[data-testid="stSidebar"] .stRadio label,
+section[data-testid="stSidebar"] .stCheckbox label {
+    color: #A09888 !important;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+section[data-testid="stSidebar"] input,
+section[data-testid="stSidebar"] .stSelectbox > div > div,
+section[data-testid="stSidebar"] .stMultiSelect > div > div {
+    background-color: #2C2C2E !important;
+    border: 1px solid #3A3A3C !important;
+    color: #E8E4DC !important;
+}
+
+/* Anular h1/h2/h3 genérico de Streamlit */
+h1, h2, h3 {
+    font-family: 'IBM Plex Serif', serif !important;
+    font-weight: 300 !important;
+    color: #1C1C1E !important;
+}
+
+/* Header principal */
+.dash-title {
+    font-family: 'IBM Plex Serif', serif;
+    font-weight: 300;
+    font-size: 2.4rem;
+    color: #1C1C1E;
+    letter-spacing: -0.02em;
+    margin-bottom: 0;
+    line-height: 1.2;
+}
+.dash-subtitle {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    color: #6B6459;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+    margin-bottom: 1.8rem;
+}
+.dash-divider {
+    border: none;
+    border-top: 2px solid #1C1C1E;
+    margin: 0.4rem 0 1.8rem 0;
+}
+
+/* Tarjetas de métricas */
+.metric-card {
+    background: #FFFFFF;
+    border: 1px solid #E0DBD3;
+    border-radius: 4px;
+    padding: 1.2rem 1.4rem;
+    text-align: left;
+    height: 100%;
+}
+.metric-card .m-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #8A8070;
+    margin-bottom: 0.4rem;
+}
+.metric-card .m-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: #1C1C1E;
+    line-height: 1;
+}
+.metric-card .m-unit {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.75rem;
+    color: #8A8070;
+    margin-top: 0.25rem;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0;
+    border-bottom: 1px solid #D0CBC2;
+    background: transparent;
+}
+.stTabs [data-baseweb="tab"] {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8A8070;
+    padding: 0.65rem 1.4rem;
+    border: none;
+    background: transparent;
+}
+.stTabs [aria-selected="true"] {
+    color: #1C1C1E !important;
+    border-bottom: 2px solid #1C1C1E !important;
+    font-weight: 500 !important;
+}
+
+/* Sección header */
+.section-header {
+    font-family: 'IBM Plex Serif', serif;
+    font-weight: 400;
+    font-size: 1.25rem;
+    color: #1C1C1E;
+    margin-top: 1.5rem;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #D0CBC2;
+}
+.section-note {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.78rem;
+    color: #8A8070;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+/* Dataframes */
+.stDataFrame { border: 1px solid #E0DBD3 !important; border-radius: 4px; }
+
+/* Sidebar brand / secciones */
+.sidebar-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: #5A5450 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 0.5rem 0 1.2rem 0;
+}
+.sidebar-section {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: #5A5450 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: 1rem 0 0.3rem 0;
+    border-top: 1px solid #2C2C2E;
+    margin-top: 0.8rem;
+}
+
+/* Formula box */
+.formula-box {
+    background: #FFFFFF;
+    border-left: 3px solid #1C1C1E;
+    border-radius: 0 4px 4px 0;
+    padding: 1rem 1.4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.88rem;
+    color: #1C1C1E;
+    margin: 1rem 0;
+    line-height: 1.7;
+}
+
+/* Result highlight (negro) */
+.result-highlight {
+    background: #1C1C1E;
+    color: #F7F6F2;
+    border-radius: 4px;
+    padding: 1.5rem 2rem;
+    margin: 1rem 0;
+}
+.result-highlight .r-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #8A8070;
+    margin-bottom: 0.4rem;
+}
+.result-highlight .r-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 2.4rem;
+    font-weight: 500;
+    color: #F7F6F2;
+    line-height: 1.1;
+}
+.result-highlight .r-unit {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8rem;
+    color: #8A8070;
+    margin-top: 0.3rem;
+}
+
+/* Note box */
+.note-box {
+    background: #FFFFFF;
+    border: 1px solid #E0DBD3;
+    border-radius: 4px;
+    padding: 0.9rem 1.2rem;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8rem;
+    color: #6B6459;
+    margin: 0.8rem 0;
+}
+
+/* Expander override */
+.streamlit-expanderHeader,
+[data-testid="stExpander"] summary,
+details > summary {
+    font-family: 'IBM Plex Sans', sans-serif !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    color: #1C1C1E !important;
+    background-color: #EDEAE4 !important;
+    border: 1px solid #D0CBC2 !important;
+    border-radius: 4px !important;
+    padding: 0.65rem 1rem !important;
+}
+[data-testid="stExpander"] summary:hover,
+details > summary:hover {
+    background-color: #E0DBD3 !important;
+}
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span,
+[data-testid="stExpander"] summary * {
+    color: #1C1C1E !important;
+}
+
+/* KaTeX */
+.katex * { color: #1C1C1E !important; }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────
+# PALETA Y ESTILO MATPLOTLIB
 # ─────────────────────────────────────────────
 PALETTE_MAIN   = "#1C1C1E"
 PALETTE_ACCENT = "#8A5C3A"
 PALETTE_MUTED  = "#8A8070"
-PALETTE_CATS   = [
-    "#1C1C1E",
-    "#8A5C3A",
-    "#5C7A5A",
-    "#4A6B8A",
-    "#8A7040",
-    "#6B4A8A",
-    "#5A7A78"
-]
+PALETTE_CATS   = ["#1C1C1E", "#8A5C3A", "#5C7A5A", "#4A6B8A",
+                  "#8A7040", "#6B4A8A", "#5A7A78"]
 
-sns.set(style="whitegrid")
 
-# ─────────────────────────────────────────────
-# FUNCIONES AUXILIARES
-# ─────────────────────────────────────────────
 def apply_academic_style(ax, title="", xlabel="", ylabel=""):
     ax.set_facecolor("#FAFAF8")
     ax.figure.set_facecolor("#FAFAF8")
-
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-
     ax.spines["left"].set_color("#D0CBC2")
     ax.spines["bottom"].set_color("#D0CBC2")
-
     ax.tick_params(colors="#6B6459", labelsize=9)
-
+    ax.xaxis.label.set_color("#6B6459")
+    ax.yaxis.label.set_color("#6B6459")
+    ax.xaxis.label.set_fontsize(9)
+    ax.yaxis.label.set_fontsize(9)
     if title:
-        ax.set_title(
-            title,
-            fontsize=11,
-            color="#1C1C1E",
-            pad=12
-        )
-
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
+        ax.set_title(title, fontsize=11, fontweight="normal",
+                     color="#1C1C1E", fontfamily="serif", pad=12)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    ax.grid(axis="y", color="#E0DBD3", linewidth=0.6, linestyle="--")
     ax.grid(axis="x", visible=False)
 
 
@@ -78,14 +312,12 @@ def cargar_datos(path):
 
 
 # ─────────────────────────────────────────────
-# CLASIFICACIÓN VEHICULAR
+# CLASIFICACIÓN Y CONSTANTES
 # ─────────────────────────────────────────────
 def clasificar_categoria(codigo):
     if pd.isna(codigo):
         return "Desconocida"
-
     codigo = str(codigo).upper()
-
     if codigo.startswith("VII"):
         return "Cat. VII — Camiones ≥ 6 ejes"
     elif codigo.startswith("VI"):
@@ -104,17 +336,14 @@ def clasificar_categoria(codigo):
         return "Especial / No clasificado"
 
 
-# ─────────────────────────────────────────────
-# FACTORES DE DAÑO
-# ─────────────────────────────────────────────
 FACTORES_DAÑO = {
-    "Cat. I — Livianos": 0.0001,
-    "Cat. II — Buses": 0.4,
+    "Cat. I — Livianos":              0.0001,
+    "Cat. II — Buses":                0.4,
     "Cat. III — Camiones 2 ejes pequeños": 1.14,
-    "Cat. IV — Camiones 2 ejes grandes": 2.25,
-    "Cat. V — Camiones 3–4 ejes": 3.15,
-    "Cat. VI — Camiones 5 ejes": 4.21,
-    "Cat. VII — Camiones ≥ 6 ejes": 5.31,
+    "Cat. IV — Camiones 2 ejes grandes":   2.25,
+    "Cat. V — Camiones 3–4 ejes":          3.15,
+    "Cat. VI — Camiones 5 ejes":           4.21,
+    "Cat. VII — Camiones ≥ 6 ejes":        5.31,
 }
 
 CATEGORIAS_PESADAS = [
@@ -128,152 +357,71 @@ CATEGORIAS_PESADAS = [
 
 
 # ─────────────────────────────────────────────
-# COMPOSICIÓN VEHICULAR (CORREGIDA)
+# FUNCIONES DE CÁLCULO
 # ─────────────────────────────────────────────
 def calcular_composicion(df):
-    df_comp = (
-        df.groupby("IdCategoriaTarifa")["Trafico"]
-        .sum()
-        .reset_index()
-    )
-
-    df_comp["Tipologia"] = (
-        df_comp["IdCategoriaTarifa"]
-        .apply(clasificar_categoria)
-    )
-
-    df_final = (
-        df_comp.groupby("Tipologia")["Trafico"]
-        .sum()
-        .reset_index()
-    )
-
-    # Cálculo corregido sin el atributo erróneo .hbar
-    suma_total = df_final["Trafico"].sum()
-    df_final["Porcentaje"] = (df_final["Trafico"] / suma_total) * 100 if suma_total > 0 else 0
-
-    K1 = (
-        df_final[
-            df_final["Tipologia"].isin(CATEGORIAS_PESADAS)
-        ]["Porcentaje"]
-        .sum()
-    )
-
+    df_comp = df.groupby("IdCategoriaTarifa")["Trafico"].sum().reset_index()
+    df_comp["Tipologia"] = df_comp["IdCategoriaTarifa"].apply(clasificar_categoria)
+    df_final = df_comp.groupby("Tipologia")["Trafico"].sum().reset_index()
+    suma = df_final["Trafico"].sum()
+    df_final["Porcentaje"] = (df_final["Trafico"] / suma * 100) if suma > 0 else 0
+    K1 = df_final[df_final["Tipologia"].isin(CATEGORIAS_PESADAS)]["Porcentaje"].sum()
     return df_final, K1
 
 
-# ─────────────────────────────────────────────
-# FACTOR DE DAÑO
-# ─────────────────────────────────────────────
 def calcular_FC(df_porcentajes):
     df = df_porcentajes.copy()
     df["f"] = df["Tipologia"].map(FACTORES_DAÑO)
-
-    # Excluir livianos
     df = df[df["Tipologia"] != "Cat. I — Livianos"]
-
     df["FC_i"] = df["Porcentaje"] * df["f"]
-
-    FC = (
-        df["FC_i"].sum()
-        / df["Porcentaje"].sum()
-    ) if df["Porcentaje"].sum() > 0 else 0
-
+    FC = df["FC_i"].sum() / df["Porcentaje"].sum() if df["Porcentaje"].sum() > 0 else 0
     return FC, df
 
 
-# ─────────────────────────────────────────────
-# CÁLCULO DEL TPD
-# ─────────────────────────────────────────────
 def calcular_TPD(df):
     df = df.copy()
-
-    # Tráfico total real
     df["Trafico_total"] = (
-        df["Trafico"]
-        + df["TraficoEvasores"]
-        + df["TraficoExentos787"]
+        df["Trafico"] + df["TraficoEvasores"] + df["TraficoExentos787"]
     )
-
-    # Manejo de fechas
     df["FechaDesde"] = pd.to_datetime(df["FechaDesde"])
     df["FechaHasta"] = pd.to_datetime(df["FechaHasta"])
+    df["Dias"] = (df["FechaHasta"] - df["FechaDesde"]).dt.days + 1
 
-    # Días exactos
-    df["Dias"] = (
-        df["FechaHasta"]
-        - df["FechaDesde"]
-    ).dt.days + 1
-
-    # Agrupar por periodos
     df_periodo = (
         df.groupby(["FechaDesde", "FechaHasta"])
-        .agg({
-            "Trafico_total": "sum",
-            "Dias": "first"
-        })
+        .agg({"Trafico_total": "sum", "Dias": "first"})
         .reset_index()
     )
+    df_periodo["TPD"] = df_periodo["Trafico_total"] / df_periodo["Dias"]
+    df_periodo["Año"] = df_periodo["FechaDesde"].dt.year
+    df_periodo["Mes"] = df_periodo["FechaDesde"].dt.month
 
-    # TPD del periodo
-    df_periodo["TPD"] = (
-        df_periodo["Trafico_total"]
-        / df_periodo["Dias"]
-    )
-
-    df_periodo["Año"] = (
-        df_periodo["FechaDesde"].dt.year
-    )
-
-    df_periodo["Mes"] = (
-        df_periodo["FechaDesde"].dt.month
-    )
-
-    # Promedio mensual
     df_periodo = (
-        df_periodo.groupby(["Año", "Mes"])["TPD"]
-        .mean()
-        .reset_index()
+        df_periodo.groupby(["Año", "Mes"])["TPD"].mean().reset_index()
     )
-
-    # Matriz mensual
     matriz = df_periodo.pivot_table(
-        index="Año",
-        columns="Mes",
-        values="TPD",
-        aggfunc="mean"
+        index="Año", columns="Mes", values="TPD", aggfunc="mean"
     )
-
-    # PROMEDIO NATURAL SIN rellenar NaNs
     TPD = matriz.mean(axis=1).reset_index()
     TPD.columns = ["Año", "TPD"]
-
     return TPD, matriz
 
 
-# ─────────────────────────────────────────────
-# REGRESIÓN
-# ─────────────────────────────────────────────
 def regresion_TPD(TPD, año_objetivo):
     x = TPD["Año"].values.reshape(-1, 1)
     y = TPD["TPD"].values
-
     modelo = LinearRegression()
     modelo.fit(x, y)
-
     TPD_pred = modelo.predict(np.array([[año_objetivo]]))[0]
     r2 = modelo.score(x, y)
 
-    # --- CÁLCULO DE LA TASA DE CRECIMIENTO ANUAL COMPUESTA (CAGR) ---
-    año_inicial = TPD["Año"].min()
-    TPD_inicial = modelo.predict(np.array([[año_inicial]]))[0]
-    periodo = año_objetivo - año_inicial
-    
-    if periodo > 0 and TPD_inicial > 0:
-        r_estimada = (TPD_pred / TPD_inicial) ** (1 / periodo) - 1
-    else:
-        r_estimada = 0.0
-
+    año_ini = TPD["Año"].min()
+    tpd_ini = modelo.predict(np.array([[año_ini]]))[0]
+    periodo  = año_objetivo - año_ini
+    r_estimada = (
+        (TPD_pred / tpd_ini) ** (1 / periodo) - 1
+        if periodo > 0 and tpd_ini > 0 else 0.0
+    )
     return modelo, TPD_pred, r2, r_estimada
 
 
@@ -281,72 +429,60 @@ def regresion_TPD(TPD, año_objetivo):
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.title("Análisis de Tránsito")
+    st.markdown('<div class="sidebar-brand">// Ingeniería Vial</div>', unsafe_allow_html=True)
+    st.markdown("### Análisis de Tránsito")
 
     try:
         df_raw = cargar_datos("Trafico_Atlantico_2026.xlsx")
     except FileNotFoundError:
-        st.error("No se encontró el archivo Excel.")
+        st.error("Archivo no encontrado: `Trafico_Atlantico_2026.xlsx`")
         st.stop()
 
-    municipios = sorted(
-        df_raw["Municipio"]
-        .dropna()
-        .unique()
-        .tolist()
-    )
-
+    st.markdown('<div class="sidebar-section">Filtro de datos</div>', unsafe_allow_html=True)
+    municipios = sorted(df_raw["Municipio"].dropna().unique().tolist())
     municipio_sel = st.selectbox("Municipio", municipios)
 
     años_disponibles = sorted(
         pd.to_datetime(df_raw["FechaDesde"], errors="coerce")
-        .dt.year
-        .dropna()
-        .unique()
-        .astype(int)
-        .tolist()
+        .dt.year.dropna().unique().astype(int).tolist()
     )
-
     años_excluir = st.multiselect(
         "Años a excluir",
         años_disponibles,
-        default=[2020, 2021, 2025, 2026]
+        default=[y for y in [2020, 2021, 2025, 2026] if y in años_disponibles],
     )
 
-    año_pred = st.number_input(
-        "Año de proyección",
-        min_value=2024,
-        max_value=2060,
-        value=2030
-    )
+    st.markdown('<div class="sidebar-section">Proyección</div>', unsafe_allow_html=True)
+    año_pred = st.number_input("Año de proyección", min_value=2024,
+                                max_value=2060, value=2030, step=1)
 
-    K2_input = st.number_input(
-        "K2 (%)",
-        min_value=0.0,
-        max_value=100.0,
-        value=50.0
-    )
+    st.markdown('<div class="sidebar-section">Parámetros de diseño</div>', unsafe_allow_html=True)
+    K2_input = st.number_input("K₂ — Carril de diseño (%)",
+                                min_value=0.0, max_value=100.0, value=50.0)
 
-    usar_r_regresion = st.checkbox("Usar 'r' estimada por la regresión", value=True)
-    
+    usar_r_regresion = st.checkbox("Usar r estimada por la regresión", value=True)
     if not usar_r_regresion:
-        r_input = st.number_input(
-            "r (Manual)",
-            min_value=0.001,
-            max_value=0.20,
-            value=0.035,
-            step=0.001,
-            format="%.3f"
-        )
+        r_input = st.number_input("r — Tasa de crecimiento (manual)",
+                                   min_value=0.001, max_value=0.20,
+                                   value=0.035, step=0.001, format="%.3f")
     else:
-        st.caption("ℹ️ *La tasa 'r' se calculará automáticamente con la tendencia del modelo.*")
         r_input = 0.035
+        st.markdown(
+            '<div style="font-family:IBM Plex Mono,monospace; font-size:0.68rem; '
+            'color:#5A5450; padding:0.3rem 0 0.5rem 0; font-style:italic;">'
+            'r se derivará de la tendencia del modelo</div>',
+            unsafe_allow_html=True,
+        )
 
-    n_input = st.number_input(
-        "n (años)",
-        min_value=1,
-        max_value=50,
-        value=15
+    n_input = st.number_input("n — Período de diseño (años)",
+                               min_value=1, max_value=50, value=15, step=1)
+
+    st.markdown("---")
+    st.markdown(
+        '<div style="font-family:IBM Plex Mono,monospace; font-size:0.6rem; '
+        'color:#5A5450; line-height:1.6;">Metodología AASHTO 93<br>'
+        'Factor de daño — Norma INVIAS</div>',
+        unsafe_allow_html=True,
     )
 
 
@@ -355,152 +491,395 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 df_mun = df_raw[df_raw["Municipio"] == municipio_sel].copy()
 df_mun["FechaDesde"] = pd.to_datetime(df_mun["FechaDesde"], errors="coerce")
-df_mun["Año_filtro"] = df_mun["FechaDesde"].dt.year
+df_mun["_año"] = df_mun["FechaDesde"].dt.year
+df_filtrado = df_mun[~df_mun["_año"].isin(años_excluir)].copy()
 
-df_filtrado = df_mun[~df_mun["Año_filtro"].isin(años_excluir)].copy()
-
-# Outliers
-percentil_99 = df_filtrado["TPDM"].quantile(0.99)
-percentil_01 = df_filtrado["TPDM"].quantile(0.01)
-
+p99 = df_filtrado["TPDM"].quantile(0.99)
+p01 = df_filtrado["TPDM"].quantile(0.01)
 df_filtrado = df_filtrado[
-    (df_filtrado["TPDM"] >= percentil_01) & 
-    (df_filtrado["TPDM"] <= percentil_99)
+    (df_filtrado["TPDM"] >= p01) & (df_filtrado["TPDM"] <= p99)
 ].copy()
-
-df_filtrado = df_filtrado.drop(columns=["Año_filtro"])
+df_filtrado = df_filtrado.drop(columns=["_año"])
 
 
 # ─────────────────────────────────────────────
 # CÁLCULOS PRINCIPALES
 # ─────────────────────────────────────────────
 df_composicion, K1 = calcular_composicion(df_filtrado)
-FC, df_fc_detalle = calcular_FC(df_composicion)
-TPD, matriz_tpd = calcular_TPD(df_filtrado)
+FC, df_fc_detalle   = calcular_FC(df_composicion)
+TPD, matriz_tpd     = calcular_TPD(df_filtrado)
 
 modelo, TPD_pred, r2, r_estimada = regresion_TPD(TPD, año_pred)
 TPD_diseño = TPD_pred
+r_final    = r_estimada if usar_r_regresion else r_input
 
-r_final = r_estimada if usar_r_regresion else r_input
+factor_acum = ((1 + r_final) ** n_input - 1) / np.log(1 + r_final)
+N = TPD_diseño * (K1 / 100) * (K2_input / 100) * 365 * factor_acum * FC
 
-factor_acumulacion = (
-    ((1 + r_final) ** n_input - 1)
-    / np.log(1 + r_final)
+
+# ─────────────────────────────────────────────
+# ENCABEZADO PRINCIPAL
+# ─────────────────────────────────────────────
+año_min = df_filtrado["FechaDesde"].dt.year.min() if not df_filtrado.empty else "—"
+año_max = df_filtrado["FechaDesde"].dt.year.max() if not df_filtrado.empty else "—"
+
+st.markdown('<div class="dash-title">Análisis de Tránsito Vial</div>', unsafe_allow_html=True)
+st.markdown(
+    f'<div class="dash-subtitle">Estación: {municipio_sel} &nbsp;·&nbsp; '
+    f'Datos: {año_min}–{año_max} &nbsp;·&nbsp; '
+    f'N = {len(df_filtrado):,} registros</div>',
+    unsafe_allow_html=True,
 )
+st.markdown('<hr class="dash-divider">', unsafe_allow_html=True)
 
-N = (
-    TPD_diseño
-    * (K1 / 100)
-    * (K2_input / 100)
-    * 365
-    * factor_acumulacion
-    * FC
-)
+
+# ── KPIs globales ──────────────────────────────
+exp_N = int(np.floor(np.log10(abs(N)))) if N > 0 else 0
+mant_N = N / 10**exp_N
+
+c1, c2, c3, c4, c5, c6 = st.columns(6)
+with c1:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="m-label">K₁ — Vehículos pesados</div>
+        <div class="m-value">{K1:.2f}</div>
+        <div class="m-unit">% del flujo total</div>
+    </div>""", unsafe_allow_html=True)
+with c2:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="m-label">Factor de daño FC</div>
+        <div class="m-value">{FC:.4f}</div>
+        <div class="m-unit">ejes equiv. / vehículo</div>
+    </div>""", unsafe_allow_html=True)
+with c3:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="m-label">TPD de diseño</div>
+        <div class="m-value">{int(TPD_diseño):,}</div>
+        <div class="m-unit">vehículos / día</div>
+    </div>""", unsafe_allow_html=True)
+with c4:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="m-label">Precisión R²</div>
+        <div class="m-value">{r2:.4f}</div>
+        <div class="m-unit">bondad del ajuste lineal</div>
+    </div>""", unsafe_allow_html=True)
+with c5:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="m-label">Tasa crecimiento r</div>
+        <div class="m-value">{r_final*100:.2f}%</div>
+        <div class="m-unit">{"estimada por regresión" if usar_r_regresion else "definida manualmente"}</div>
+    </div>""", unsafe_allow_html=True)
+with c6:
+    st.markdown(f"""
+    <div class="metric-card">
+        <div class="m-label">Ejes equivalentes N</div>
+        <div class="m-value">{mant_N:.2f}×10<sup>{exp_N}</sup></div>
+        <div class="m-unit">ESALs · {n_input} años</div>
+    </div>""", unsafe_allow_html=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-# TÍTULO Y MÉTRICAS
-# ─────────────────────────────────────────────
-st.title("Dashboard de Análisis de Tránsito")
-st.write(f"Municipio analizado: **{municipio_sel}** | Registros utilizados: **{len(df_filtrado):,}**")
-
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-col1.metric("K1 (%)", f"{K1:.2f}")
-col2.metric("FC", f"{FC:.4f}")
-col3.metric("TPD Diseño", f"{TPD_diseño:,.0f}")
-col4.metric("Precisión ($R^2$)", f"{r2:.4f}")
-col5.metric("Tasa Crecimiento ($r$)", f"{r_final * 100:.2f}%")
-col6.metric("Ejes Equiv. (N)", f"{N:,.0f}")
-
-
-# ─────────────────────────────────────────────
-# TABS
+# PESTAÑAS
 # ─────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs([
-    "TPD Histórico",
-    "Composición Vehicular",
-    "Ejes Equivalentes"
+    "1 · TPD Histórico y Proyección",
+    "2 · Composición Vehicular",
+    "3 · Ejes Equivalentes (N)",
 ])
 
 
-# ─────────────────────────────────────────────
-# TAB 1
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# TAB 1 — TPD
+# ══════════════════════════════════════════════
 with tab1:
-    st.subheader("TPD Histórico y Ajuste del Modelo")
-
-    c_reg1, c_reg2 = st.columns(2)
-    with c_reg1:
-        st.markdown(f"**Coeficiente de Determinación ($R^2$ - Precisión):** `{r2:.4f}`")
-    with c_reg2:
-        st.markdown(f"**Tasa de Crecimiento Anual de la Tendencia ($r$):** `{r_estimada * 100:.2f}%` o (`{r_estimada:.4f}` decimal)")
-
-    st.dataframe(TPD)
-
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(TPD["Año"], TPD["TPD"], marker="o", color=PALETTE_MAIN)
-
-    X_plot = np.linspace(TPD["Año"].min(), año_pred, 100)
-    y_plot = modelo.predict(X_plot.reshape(-1, 1))
-
-    ax.plot(X_plot, y_plot, "--", color=PALETTE_ACCENT)
-    ax.scatter(año_pred, TPD_pred, color=PALETTE_ACCENT, s=80)
-
-    apply_academic_style(
-        ax,
-        title="Proyección del TPD",
-        xlabel="Año",
-        ylabel="Vehículos/día"
+    st.markdown('<div class="section-header">TPD Histórico y Ajuste del Modelo</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-note">Regresión lineal sobre los años disponibles. '
+        'Los años excluidos (pandemia u outliers) no participan en el ajuste.</div>',
+        unsafe_allow_html=True,
     )
-    st.pyplot(fig)
+
+    # Sub-métricas
+    cm1, cm2, cm3 = st.columns(3)
+    with cm1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="m-label">TPD proyectado ({año_pred})</div>
+            <div class="m-value">{int(TPD_diseño):,}</div>
+            <div class="m-unit">vehículos / día</div>
+        </div>""", unsafe_allow_html=True)
+    with cm2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="m-label">R² del modelo</div>
+            <div class="m-value">{r2:.4f}</div>
+            <div class="m-unit">coeficiente de determinación</div>
+        </div>""", unsafe_allow_html=True)
+    with cm3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="m-label">Tasa de crecimiento r</div>
+            <div class="m-value">{r_estimada*100:.2f}%</div>
+            <div class="m-unit">CAGR · tendencia del modelo</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col_g, col_t = st.columns([3, 2])
+
+    with col_g:
+        fig, ax = plt.subplots(figsize=(7, 4.2))
+        ax.plot(TPD["Año"], TPD["TPD"],
+                marker="o", markersize=6, color=PALETTE_MAIN,
+                linewidth=1.8, label="TPD histórico")
+
+        X_plot = np.linspace(TPD["Año"].min(), año_pred, 200)
+        y_plot = modelo.predict(X_plot.reshape(-1, 1))
+        ax.plot(X_plot, y_plot, "--", color=PALETTE_ACCENT,
+                linewidth=1.4, alpha=0.85, label="Tendencia lineal")
+
+        ax.scatter([año_pred], [TPD_pred], s=90, color=PALETTE_ACCENT,
+                   zorder=5, label=f"Proyección {año_pred}")
+        ax.annotate(
+            f"{int(TPD_pred):,}",
+            xy=(año_pred, TPD_pred),
+            xytext=(año_pred - 1.5, TPD_pred * 1.04),
+            fontsize=8, color=PALETTE_ACCENT,
+        )
+        ax.legend(fontsize=8, framealpha=0.9, edgecolor="#D0CBC2")
+        apply_academic_style(ax,
+            title="Proyección del TPD mediante regresión lineal",
+            xlabel="Año", ylabel="TPD (vehículos/día)")
+        ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close()
+
+    with col_t:
+        st.markdown('<div class="section-header" style="font-size:1rem; margin-top:0;">TPD anual</div>',
+                    unsafe_allow_html=True)
+        st.dataframe(
+            TPD.rename(columns={"Año": "Año", "TPD": "TPD (veh/día)"})
+               .assign(**{"TPD (veh/día)": lambda d: d["TPD (veh/día)"].round(1)})
+               .reset_index(drop=True),
+            use_container_width=True, hide_index=True,
+        )
+
+    st.markdown('<div class="section-header">Matriz de TPD mensual por año</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-note">Promedio mensual de TPD. Las celdas vacías corresponden '
+        'a meses sin datos en ese año.</div>',
+        unsafe_allow_html=True,
+    )
+    meses_es = {1:"Ene", 2:"Feb", 3:"Mar", 4:"Abr", 5:"May", 6:"Jun",
+                7:"Jul", 8:"Ago", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dic"}
+    matriz_display = matriz_tpd.copy().round(0)
+    matriz_display.columns = [meses_es.get(c, c) for c in matriz_display.columns]
+    st.dataframe(matriz_display, use_container_width=True)
 
 
-# ─────────────────────────────────────────────
-# TAB 2
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# TAB 2 — Composición
+# ══════════════════════════════════════════════
 with tab2:
-    st.subheader("Composición Vehicular")
-    st.dataframe(df_composicion)
-
-    fig, ax = plt.subplots(figsize=(7, 4))
-    sns.barplot(
-        data=df_composicion,
-        x="Porcentaje",
-        y="Tipologia",
-        palette=PALETTE_CATS,
-        ax=ax
+    st.markdown('<div class="section-header">Composición Vehicular</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-note">Distribución del tráfico por categoría INVIAS. '
+        'K₁ representa la fracción de vehículos pesados que contribuyen al deterioro del pavimento.</div>',
+        unsafe_allow_html=True,
     )
 
-    apply_academic_style(
-        ax,
-        title="Composición Vehicular",
-        xlabel="Porcentaje (%)",
-        ylabel=""
+    ck1, ck2 = st.columns(2)
+    with ck1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="m-label">K₁ — Proporción vehículos pesados</div>
+            <div class="m-value">{K1:.2f} %</div>
+            <div class="m-unit">buses + camiones sobre el flujo total</div>
+        </div>""", unsafe_allow_html=True)
+    with ck2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="m-label">Factor de daño FC</div>
+            <div class="m-value">{FC:.4f}</div>
+            <div class="m-unit">ejes equivalentes ponderados por categoría</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_pie, col_bar = st.columns([1, 1])
+
+    with col_pie:
+        fig, ax = plt.subplots(figsize=(5.5, 5.5))
+        colors_pie = PALETTE_CATS[: len(df_composicion)]
+        wedges, texts, autotexts = ax.pie(
+            df_composicion["Porcentaje"],
+            labels=None,
+            autopct=lambda p: f"{p:.1f}%" if p > 2 else "",
+            colors=colors_pie,
+            startangle=90,
+            pctdistance=0.78,
+            wedgeprops={"linewidth": 0.6, "edgecolor": "#F7F6F2"},
+        )
+        for at in autotexts:
+            at.set_fontsize(8)
+            at.set_color("#F7F6F2")
+        ax.legend(
+            wedges, df_composicion["Tipologia"],
+            loc="lower center", bbox_to_anchor=(0.5, -0.2),
+            ncol=2, fontsize=7, framealpha=0,
+        )
+        ax.set_title("Distribución por categoría vehicular",
+                     fontsize=11, fontweight="normal",
+                     color="#1C1C1E", fontfamily="serif", pad=10)
+        fig.set_facecolor("#FAFAF8")
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close()
+
+    with col_bar:
+        fig, ax = plt.subplots(figsize=(5.5, 5.5))
+        sorted_df = df_composicion.sort_values("Porcentaje")
+        bars = ax.barh(
+            sorted_df["Tipologia"], sorted_df["Porcentaje"],
+            color=PALETTE_MAIN, alpha=0.85, height=0.55,
+        )
+        ax.bar_label(bars, fmt="%.1f%%", padding=4, fontsize=8, color=PALETTE_MUTED)
+        apply_academic_style(ax,
+            title="Porcentaje por tipología",
+            xlabel="Porcentaje (%)")
+        ax.grid(axis="x", color="#E0DBD3", linewidth=0.6, linestyle="--")
+        ax.grid(axis="y", visible=False)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close()
+
+    st.markdown('<div class="section-header">Tabla de composición</div>', unsafe_allow_html=True)
+    df_show = df_composicion[["Tipologia", "Trafico", "Porcentaje"]].copy()
+    df_show.columns = ["Tipología", "Tráfico total", "Porcentaje (%)"]
+    df_show["Porcentaje (%)"] = df_show["Porcentaje (%)"].round(2)
+    df_show["Tráfico total"] = df_show["Tráfico total"].apply(lambda x: f"{int(x):,}")
+    st.dataframe(df_show, use_container_width=True, hide_index=True)
+
+    st.markdown('<div class="section-header">Factor de daño por categoría</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-note">FC pondera la contribución de cada categoría al deterioro '
+        'del pavimento según equivalentes de carga estándar (ESAL). '
+        'La categoría I (livianos) se excluye del cálculo.</div>',
+        unsafe_allow_html=True,
     )
-    st.pyplot(fig)
 
-    st.subheader("Factor de daño")
-    st.dataframe(df_fc_detalle)
+    fig, ax = plt.subplots(figsize=(9, 3.5))
+    mask = df_fc_detalle["f"].notna()
+    sorted_fc = df_fc_detalle[mask].sort_values("f")
+    bars2 = ax.barh(
+        sorted_fc["Tipologia"], sorted_fc["f"],
+        color=PALETTE_MAIN, alpha=0.85, height=0.55,
+    )
+    ax.bar_label(bars2, fmt="%.2f", padding=4, fontsize=8, color=PALETTE_MUTED)
+    apply_academic_style(ax,
+        title="Factor unitario de daño por categoría",
+        xlabel="Factor (f)")
+    ax.grid(axis="x", color="#E0DBD3", linewidth=0.6, linestyle="--")
+    ax.grid(axis="y", visible=False)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close()
+
+    df_fc_view = df_fc_detalle[["Tipologia", "Porcentaje", "f", "FC_i"]].copy()
+    df_fc_view.columns = ["Tipología", "Porcentaje (%)", "Factor (f)", "FC_i"]
+    df_fc_view["Porcentaje (%)"] = df_fc_view["Porcentaje (%)"].round(3)
+    df_fc_view["Factor (f)"]     = df_fc_view["Factor (f)"].round(4)
+    df_fc_view["FC_i"]           = df_fc_view["FC_i"].round(4)
+    st.dataframe(df_fc_view, use_container_width=True, hide_index=True)
 
 
-# ─────────────────────────────────────────────
-# TAB 3
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# TAB 3 — Ejes Equivalentes
+# ══════════════════════════════════════════════
 with tab3:
-    st.subheader("Ejes Equivalentes")
+    st.markdown('<div class="section-header">Número de Ejes Equivalentes de 8,2 t (N)</div>',
+                unsafe_allow_html=True)
+
     st.latex(
-        r"""
-        N = TPD \cdot \frac{K_1}{100} \cdot \frac{K_2}{100} \cdot 365 \cdot \left( \frac{(1+r)^n -1}{\ln(1+r)} \right) \cdot FC
-        """
+        r"N = TPD \cdot \frac{K_1}{100} \cdot \frac{K_2}{100} \cdot 365 "
+        r"\cdot \frac{(1+r)^n - 1}{\ln(1+r)} \cdot FC"
     )
 
-    st.write(f"### N = {N:,.2f}")
-    st.write("---")
+    col_par, col_res = st.columns([1, 1])
 
-    st.write(f"**TPD diseño:** {TPD_diseño:,.2f}")
-    st.write(f"**K1 (Vehículos Pesados):** {K1:.2f}%")
-    st.write(f"**K2 (Distribución Direccional):** {K2_input:.2f}%")
-    st.write(f"**FC (Factor de Daño Global):** {FC:.4f}")
-    st.write(f"**r (Tasa Utilizada):** {r_final:.4f} ({r_final * 100:.2f}%)")
-    st.write(f"**n (Periodo de diseño):** {n_input} años")
+    with col_par:
+        df_params = pd.DataFrame({
+            "Parámetro": ["TPD de diseño", "K₁ — Vehículos pesados",
+                          "K₂ — Carril de diseño", "Tasa de crecimiento r",
+                          "Período de diseño n", "Factor de daño FC"],
+            "Símbolo": ["TPD", "K₁", "K₂", "r", "n", "FC"],
+            "Valor": [
+                f"{int(TPD_diseño):,} veh/día",
+                f"{K1:.3f} %",
+                f"{K2_input:.1f} %",
+                f"{r_final:.4f} ({r_final*100:.2f} %)",
+                f"{int(n_input)} años",
+                f"{FC:.4f}",
+            ],
+        })
+        st.dataframe(df_params, use_container_width=True, hide_index=True)
+
+    with col_res:
+        st.markdown(f"""
+        <div class="result-highlight">
+            <div class="r-label">Número de ejes equivalentes acumulados</div>
+            <div class="r-value">N = {N:,.0f}</div>
+            <div class="r-unit">ESALs · período {n_input} años · carril de diseño</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="metric-card" style="margin-top:0.8rem;">
+            <div class="m-label">Notación científica</div>
+            <div class="m-value">{mant_N:.3f} × 10<sup>{exp_N}</sup></div>
+            <div class="m-unit">ejes equivalentes de 8,2 toneladas</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Curva de sensibilidad a n
+    st.markdown('<div class="section-header">Análisis de sensibilidad — Período de diseño</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-note">Variación de N para distintos períodos de diseño, '
+        'manteniendo constantes los demás parámetros.</div>',
+        unsafe_allow_html=True,
+    )
+
+    ns_range = list(range(5, 31))
+    Ns_range = [
+        TPD_diseño * (K1 / 100) * (K2_input / 100) * 365
+        * (((1 + r_final) ** ni - 1) / np.log(1 + r_final)) * FC
+        for ni in ns_range
+    ]
+
+    fig, ax = plt.subplots(figsize=(9, 3.8))
+    ax.plot(ns_range, [n / 1e6 for n in Ns_range], color=PALETTE_MAIN, linewidth=2)
+    ax.fill_between(ns_range, [n / 1e6 for n in Ns_range],
+                    alpha=0.08, color=PALETTE_MAIN)
+    ax.axvline(n_input, color=PALETTE_ACCENT, linewidth=1.2,
+               linestyle="--", label=f"n = {n_input} años")
+    ax.axhline(N / 1e6, color=PALETTE_ACCENT, linewidth=0.8,
+               linestyle=":", alpha=0.6)
+    ax.scatter([n_input], [N / 1e6], color=PALETTE_ACCENT, s=70, zorder=5)
+    ax.legend(fontsize=8, framealpha=0.9, edgecolor="#D0CBC2")
+    apply_academic_style(ax,
+        title="Sensibilidad de N respecto al período de diseño",
+        xlabel="Período de diseño n (años)",
+        ylabel="N (millones de ESALs)")
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close()
