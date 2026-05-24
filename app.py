@@ -477,7 +477,7 @@ with st.sidebar:
 
     st.markdown('<div class="sidebar-section">Filtro de datos</div>', unsafe_allow_html=True)
     municipios = sorted(df_raw["Municipio"].dropna().unique().tolist())
-    municipio_sel = st.selectbox("Municipio", municipios)
+    municipio_sel = st.selectbox("Municipio", municipios,value="Puerto Colombia")
 
     años_disponibles = sorted(
         pd.to_datetime(df_raw["FechaDesde"], errors="coerce")
@@ -491,7 +491,7 @@ with st.sidebar:
 
     st.markdown('<div class="sidebar-section">Proyección</div>', unsafe_allow_html=True)
     año_pred = st.number_input("Año de proyección", min_value=2024,
-                                max_value=2060, value=2030, step=1)
+                                max_value=2060, value=2027, step=1)
 
     st.markdown('<div class="sidebar-section">Parámetros de diseño</div>', unsafe_allow_html=True)
     K2_input = st.number_input("K₂ — Carril de diseño (%)",
