@@ -275,11 +275,38 @@ details > summary:hover {
 # ─────────────────────────────────────────────
 # PALETA Y ESTILO MATPLOTLIB
 # ─────────────────────────────────────────────
-PALETTE_MAIN   = "#1C1C1E"
-PALETTE_ACCENT = "#8A5C3A"
-PALETTE_MUTED  = "#8A8070"
-PALETTE_CATS   = ["#1C1C1E", "#8A5C3A", "#5C7A5A", "#4A6B8A",
-                  "#8A7040", "#6B4A8A", "#5A7A78"]
+# ── Paleta principal ──────────────────────────────────────────────────────────
+# Carbón base, acento terracota, tierras cálidas + fríos apagados.
+# Todos los colores comparten luminosidad baja-media para no romper la estética.
+PALETTE_MAIN      = "#1C1C1E"          # carbón casi negro
+PALETTE_ACCENT    = "#9C5A32"          # terracota media
+PALETTE_ACCENT2   = "#4A7C6F"          # verde-azul pizarra
+PALETTE_MUTED     = "#8A8070"          # sepia gris
+PALETTE_FILL      = "#C8A882"          # arena cálida (fills suaves)
+PALETTE_FILL2     = "#7AABB0"          # azul agua (fills suaves 2)
+
+# Paleta secuencial para categorías — 7 tonos armónicos con la UI
+PALETTE_CATS = [
+    "#2B2B2E",   # carbón profundo     Cat I
+    "#9C5A32",   # terracota           Cat II
+    "#4A7C6F",   # verde pizarra       Cat III
+    "#6B7FA8",   # azul slate          Cat IV
+    "#8A6B3A",   # ocre madera         Cat V
+    "#7A5A8A",   # malva oscuro        Cat VI
+    "#4A7A72",   # verde agua          Cat VII
+]
+
+# Ramp gradiente continuo para barras (de claro a oscuro dentro de cada serie)
+import matplotlib.colors as mcolors
+
+def make_bar_colors(n, base="#9C5A32", light_factor=0.55):
+    """Genera n tonos interpolados entre una versión clara y la base."""
+    base_rgb  = mcolors.to_rgb(base)
+    light_rgb = tuple(min(1, c + (1 - c) * light_factor) for c in base_rgb)
+    return [mcolors.to_hex(
+        tuple(light_rgb[i] + (base_rgb[i] - light_rgb[i]) * t / max(n - 1, 1)
+              for i in range(3))
+    ) for t in range(n)]
 
 
 def apply_academic_style(ax, title="", xlabel="", ylabel=""):
@@ -301,6 +328,16 @@ def apply_academic_style(ax, title="", xlabel="", ylabel=""):
     if ylabel: ax.set_ylabel(ylabel)
     ax.grid(axis="y", color="#E0DBD3", linewidth=0.6, linestyle="--")
     ax.grid(axis="x", visible=False)
+
+def style_legend(ax):
+    leg = ax.get_legend()
+    if leg:
+        leg.get_frame().set_facecolor("#FFFFFF")
+        leg.get_frame().set_edgecolor("#D0CBC2")
+        leg.get_frame().set_linewidth(0.8)
+        for text in leg.get_texts():
+            text.set_color("#4A4035")
+            text.set_fontsize(8)
 
 
 # ─────────────────────────────────────────────
@@ -636,24 +673,41 @@ with tab1:
 
     with col_g:
         fig, ax = plt.subplots(figsize=(7, 4.2))
+
+        # Área bajo la línea histórica
+        ax.fill_between(TPD["Año"], TPD["TPD"],
+                        alpha=0.10, color=PALETTE_MAIN, zorder=1)
+
+        # Línea histórica
         ax.plot(TPD["Año"], TPD["TPD"],
                 marker="o", markersize=6, color=PALETTE_MAIN,
-                linewidth=1.8, label="TPD histórico")
+                linewidth=2, label="TPD histórico",
+                markerfacecolor="#FFFFFF", markeredgecolor=PALETTE_MAIN,
+                markeredgewidth=1.8, zorder=3)
 
+        # Área de proyección (distinguible del histórico)
         X_plot = np.linspace(TPD["Año"].min(), año_pred, 200)
         y_plot = modelo.predict(X_plot.reshape(-1, 1))
+        ax.fill_between(X_plot, y_plot,
+                        alpha=0.08, color=PALETTE_ACCENT, zorder=1)
         ax.plot(X_plot, y_plot, "--", color=PALETTE_ACCENT,
-                linewidth=1.4, alpha=0.85, label="Tendencia lineal")
+                linewidth=1.6, alpha=0.9, label="Tendencia lineal", zorder=2)
 
-        ax.scatter([año_pred], [TPD_pred], s=90, color=PALETTE_ACCENT,
-                   zorder=5, label=f"Proyección {año_pred}")
+        # Punto de proyección con halo
+        ax.scatter([año_pred], [TPD_pred], s=130, color=PALETTE_ACCENT,
+                   zorder=5, label=f"Proyección {año_pred}",
+                   edgecolors="#FFFFFF", linewidths=1.5)
         ax.annotate(
-            f"{int(TPD_pred):,}",
+            f"  {int(TPD_pred):,} veh/día",
             xy=(año_pred, TPD_pred),
-            xytext=(año_pred - 1.5, TPD_pred * 1.04),
-            fontsize=8, color=PALETTE_ACCENT,
+            xytext=(año_pred, TPD_pred * 1.05),
+            fontsize=8, color=PALETTE_ACCENT, fontweight="normal",
+            fontfamily="monospace",
         )
-        ax.legend(fontsize=8, framealpha=0.9, edgecolor="#D0CBC2")
+
+        ax.legend(fontsize=8, framealpha=0.95, edgecolor="#D0CBC2",
+                  facecolor="#FFFFFF", loc="upper left")
+        style_legend(ax)
         apply_academic_style(ax,
             title="Proyección del TPD mediante regresión lineal",
             xlabel="Año", ylabel="TPD (vehículos/día)")
@@ -719,22 +773,36 @@ with tab2:
     with col_pie:
         fig, ax = plt.subplots(figsize=(5.5, 5.5))
         colors_pie = PALETTE_CATS[: len(df_composicion)]
+
+        # Donut chart (más moderno que pie sólido, menos cargado)
         wedges, texts, autotexts = ax.pie(
             df_composicion["Porcentaje"],
             labels=None,
-            autopct=lambda p: f"{p:.1f}%" if p > 2 else "",
+            autopct=lambda p: f"{p:.1f}%" if p > 3 else "",
             colors=colors_pie,
             startangle=90,
-            pctdistance=0.78,
-            wedgeprops={"linewidth": 0.6, "edgecolor": "#F7F6F2"},
+            pctdistance=0.80,
+            wedgeprops={
+                "linewidth": 1.2,
+                "edgecolor": "#F7F6F2",
+                "width": 0.62,        # donut
+            },
         )
         for at in autotexts:
             at.set_fontsize(8)
-            at.set_color("#F7F6F2")
+            at.set_color("#FFFFFF")
+            at.set_fontweight("bold")
+
+        # Centro del donut
+        ax.text(0, 0, f"K₁\n{K1:.1f}%", ha="center", va="center",
+                fontsize=10, color=PALETTE_MAIN, fontfamily="monospace",
+                fontweight="bold")
+
         ax.legend(
             wedges, df_composicion["Tipologia"],
-            loc="lower center", bbox_to_anchor=(0.5, -0.2),
-            ncol=2, fontsize=7, framealpha=0,
+            loc="lower center", bbox_to_anchor=(0.5, -0.22),
+            ncol=2, fontsize=7, framealpha=0, edgecolor="none",
+            labelcolor="#4A4035",
         )
         ax.set_title("Distribución por categoría vehicular",
                      fontsize=11, fontweight="normal",
@@ -746,12 +814,17 @@ with tab2:
 
     with col_bar:
         fig, ax = plt.subplots(figsize=(5.5, 5.5))
-        sorted_df = df_composicion.sort_values("Porcentaje")
+        sorted_df = df_composicion.sort_values("Porcentaje").reset_index(drop=True)
+        n_cats = len(sorted_df)
+        bar_colors = make_bar_colors(n_cats, base=PALETTE_ACCENT, light_factor=0.55)
+
         bars = ax.barh(
             sorted_df["Tipologia"], sorted_df["Porcentaje"],
-            color=PALETTE_MAIN, alpha=0.85, height=0.55,
+            color=bar_colors, height=0.58,
+            edgecolor="#F7F6F2", linewidth=0.5,
         )
-        ax.bar_label(bars, fmt="%.1f%%", padding=4, fontsize=8, color=PALETTE_MUTED)
+        ax.bar_label(bars, fmt="%.1f%%", padding=5, fontsize=8,
+                     color=PALETTE_MUTED, fontfamily="monospace")
         apply_academic_style(ax,
             title="Porcentaje por tipología",
             xlabel="Porcentaje (%)")
@@ -779,12 +852,23 @@ with tab2:
 
     fig, ax = plt.subplots(figsize=(9, 3.5))
     mask = df_fc_detalle["f"].notna()
-    sorted_fc = df_fc_detalle[mask].sort_values("f")
+    sorted_fc = df_fc_detalle[mask].sort_values("f").reset_index(drop=True)
+    n_fc = len(sorted_fc)
+    fc_colors = make_bar_colors(n_fc, base=PALETTE_ACCENT2, light_factor=0.60)
+
     bars2 = ax.barh(
         sorted_fc["Tipologia"], sorted_fc["f"],
-        color=PALETTE_MAIN, alpha=0.85, height=0.55,
+        color=fc_colors, height=0.55,
+        edgecolor="#F7F6F2", linewidth=0.5,
     )
-    ax.bar_label(bars2, fmt="%.2f", padding=4, fontsize=8, color=PALETTE_MUTED)
+    # Marcador de FC global
+    ax.axvline(FC, color=PALETTE_ACCENT, linewidth=1.2, linestyle="--",
+               label=f"FC global = {FC:.4f}")
+    ax.legend(fontsize=8, framealpha=0.9, edgecolor="#D0CBC2", facecolor="#FFFFFF")
+    style_legend(ax)
+
+    ax.bar_label(bars2, fmt="%.2f", padding=5, fontsize=8,
+                 color=PALETTE_MUTED, fontfamily="monospace")
     apply_academic_style(ax,
         title="Factor unitario de daño por categoría",
         xlabel="Factor (f)")
@@ -867,15 +951,33 @@ with tab3:
     ]
 
     fig, ax = plt.subplots(figsize=(9, 3.8))
-    ax.plot(ns_range, [n / 1e6 for n in Ns_range], color=PALETTE_MAIN, linewidth=2)
-    ax.fill_between(ns_range, [n / 1e6 for n in Ns_range],
-                    alpha=0.08, color=PALETTE_MAIN)
-    ax.axvline(n_input, color=PALETTE_ACCENT, linewidth=1.2,
-               linestyle="--", label=f"n = {n_input} años")
-    ax.axhline(N / 1e6, color=PALETTE_ACCENT, linewidth=0.8,
-               linestyle=":", alpha=0.6)
-    ax.scatter([n_input], [N / 1e6], color=PALETTE_ACCENT, s=70, zorder=5)
-    ax.legend(fontsize=8, framealpha=0.9, edgecolor="#D0CBC2")
+
+    Ns_M = [v / 1e6 for v in Ns_range]
+
+    # Área de relleno con gradiente visual (dos capas)
+    ax.fill_between(ns_range, Ns_M, alpha=0.07, color=PALETTE_ACCENT2)
+    ax.fill_between(ns_range, Ns_M, alpha=0.04, color=PALETTE_MAIN)
+
+    # Línea principal
+    ax.plot(ns_range, Ns_M, color=PALETTE_ACCENT2, linewidth=2.2, zorder=3)
+
+    # Línea vertical de diseño
+    ax.axvline(n_input, color=PALETTE_ACCENT, linewidth=1.4,
+               linestyle="--", alpha=0.9, label=f"n = {n_input} años",  zorder=4)
+
+    # Línea horizontal de N resultante
+    ax.axhline(N / 1e6, color=PALETTE_ACCENT, linewidth=0.9,
+               linestyle=":", alpha=0.6, zorder=2)
+
+    # Punto de diseño con halo
+    ax.scatter([n_input], [N / 1e6], s=110, color=PALETTE_ACCENT,
+               edgecolors="#FFFFFF", linewidths=1.8, zorder=6,
+               label=f"N = {N/1e6:.2f} M ESALs")
+
+    ax.legend(fontsize=8, framealpha=0.95, edgecolor="#D0CBC2",
+              facecolor="#FFFFFF", loc="upper left")
+    style_legend(ax)
+
     apply_academic_style(ax,
         title="Sensibilidad de N respecto al período de diseño",
         xlabel="Período de diseño n (años)",
